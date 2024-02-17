@@ -1,4 +1,3 @@
--- test cases for basic mathematical operators [+ - * /]
 local cases = {
     {
         name = "add_simple",
