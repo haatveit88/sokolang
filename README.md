@@ -101,6 +101,12 @@ As far as jumps are concerned, ANY non-numerical value on the stack is treated a
 
 # TODO:
 
+* booleans
+* lots of errors in section [Magic Stack](#magic-stack):
+    * mention of files, device pointers, labels, as being items on the stack. they aren't. devices pointers == labels == addresses.
+    * type list is poorly formatted
+    * type list mentions concat restrictions in a weird way implying floats can be concatenated. they can't be.
+    * confidently states images are arrays indexed via y*i+x, while none of that is determined at this point at all.
 * named registers
 * `read` & `write` operators; %files and $memory, needs to be defined and explained
 * array creation, `append` and `trim` (`split` ?) syntax needs to be defined and explained.
