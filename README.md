@@ -37,6 +37,8 @@ To complement the [Magic Stack](#magic-stack), there are Magic Operators. Really
 
 For example, adding two images together is completely valid, and produces a new image that is the pixel-wise sum of its operands. The intention is more or less that *if you can imagine this operation doing something useful, it should do that thing*. Adding a number to an image? Fine, your image is now brighter. Add two arrays together? Sure, they will add element-wise (pseudocode): `[1, 2] + [3, 4] = [4, 6]`.
 
+Of special note is the negate operator `!` - this
+
 A matrix of type & operator combinations should appear in this document at some point.
 
 
@@ -95,24 +97,3 @@ There are several conditional jumps:
 * `JLZ` Jump if Less than Zero. Jumps to the label if the top of the stack is less than 0.
 
 As far as jumps are concerned, ANY non-numerical value on the stack is treated as "not 0".
-
-
-
-
-# TODO:
-
-* booleans
-* lots of errors in section [Magic Stack](#magic-stack):
-    * mention of files, device pointers, labels, as being items on the stack. they aren't. devices pointers == labels == addresses.
-    * type list is poorly formatted
-    * type list mentions concat restrictions in a weird way implying floats can be concatenated. they can't be.
-    * confidently states images are arrays indexed via y*i+x, while none of that is determined at this point at all.
-* named registers
-* `read` & `write` operators; %files and $memory, needs to be defined and explained
-* array creation, `append` and `trim` (`split` ?) syntax needs to be defined and explained.
-* Type & Operator matrix
-* Error handling
-* Examples
-    * More complex loops
-    * Working with arrays
-    * Concrete problem examples
