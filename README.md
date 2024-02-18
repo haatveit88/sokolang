@@ -43,8 +43,6 @@ To complement the [Magic Stack](#magic-stack), there are Magic Operators. Really
 
 For example, adding two images together is completely valid, and produces a new image that is the pixel-wise sum of its operands. The intention is more or less that *if you can imagine this operation doing something useful, it should do that thing*. Adding a number to an image? Fine, your image is now brighter. Add two arrays together? Sure, they will add element-wise (pseudocode): `[1, 2] + [3, 4] = [4, 6]`.
 
-Of special note is the negate operator `!` - this
-
 A matrix of type & operator combinations should appear in this document at some point.
 
 
