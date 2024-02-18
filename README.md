@@ -18,17 +18,23 @@ Sokolang is intended to be very simple to understand for non-programmers, and to
 
 ## Magic Stack
 
-The stack upon which Sokolang operates, is *magical* in the sense that it can hold really weird data types, directly on the stack. For example, it can hold; images, files, device pointers, strings, floats, booleans, jump labels... Among others.
+The stack upon which Sokolang operates, is *magical* in the sense that it can hold really weird data types, directly on the stack. For example, it can hold; images, audio recordings, memory addresses, strings... And more. Some of these things obviously won't work outside of the game. In these cases, this prototype implementation will approximate the game-specific types with simplified models.
 
-Some of these things obviously won't work outside of the game. In these cases, this prototype implementation will approximate the game in a simple way; `images` will just be 2D matrices, `device pointers` will call lua functions that behave like the devices in the game do, etc.
+Here is a list of types the stack can hold, which also conveniently doubles as a list of all the types recognized by the language in general:
 
-Here is a list of types the stack can hold:
-
-* Numbers: They can intermingle in most contexts, but for some operations (like `concat`) only one or the other is supported
-* Strings: String literals. Single characters `a` are also technically strings, with a length of 1
-* Images:  Essentially 1D arrays, accessed as `y * index + x`
-* Audio:   Treated as array of samples. Impractical to work on as array, but can accept many [magic operators](#magic-operators) and [fold operators](#folding-operators).
-* Memory:  Memory addresses, treated as numbers for most operations, but visually represented as `$LABELS` (if exists) or `0x` hex values.
+* **Numbers**: Floats and ints can intermingle in most contexts, but for some operations only one or the other is supported
+    * `push 5` `push 3.14`
+* **Strings**: String literals. They must be quoted, either by single or double quotes. No mixing of quotes. Single characters are also strings.
+    * `push "hello world"` `push 'a'` `push "b"` `push 'sokoban'`
+* **Images**:  The exact representation is TBD. Referenced by filename. Prime target for [magic operators](#magic-operators) and [fold operators](#folding-operators).
+    * `push [img_a, img_b, img_c]` assuming files img_a, img_b, img_c to exist in the filesystem.
+* **Audio**:   Treated as array of samples in time, where a sample is the average input some sample interval TBD.
+* **Memory**:  Memory addresses, treated as numbers for most operations, but visually represented as `$LABELS` (if exists) or `0x` hex values.
+    * `push $DEVICE_ADDRESS` `push 0xFF`
+* **Files**:   Files have a special set of operators, see [File Operations](#file-operations). But they do support some magic operators and folds.
+    * `> A_FILE` append current top of stack item to file, if supported (anything but audio and images, basically)
+    * `< A_FILE` read one byte from file and pushes onto stack
+* **NaN**:     Not a Number. This one means things are about to go from bad to worse, see [NaN: Not a Number]()
 
 
 ## Magic Operators
@@ -71,6 +77,37 @@ Inspection:
 * `dump` prints the basic representation of the whole stack. For files (images, recordings) this just prints the file name. For strings, prints a trunkated version.
 
 
+## Registers
+
+Despite being a stack machine, Sokolang does offer a few general purpose registers, as well as a program counter register, and some facilities to manipulate them. The program counter register, called `P`, automatically increments for each program instruction that is executed. It can also be written to, effectively moving the instruction pointer somewhere else. This allows for some different types of control flow vs labels, but can be used in combination with it. Each line in a program counts as an instruction.
+
+The general purpose registers are named `A`, `B`, `C`, `X`, `Y`, `Z`. These registers can hold any value that the stack can hold. They retain their value when read.
+
+* `store A` - stores the top stack item in one of the registers; `A`, `B`, `C`, `X`, `Y`, `Z`, `P`.
+* `store [A, X]` - stores the top two stack items in `A` and `X`, respectively. The list can contain any combination of the available registers.
+* `recall A` - copies the item in register `A` onto the stack.
+* `recall [A, X]` - copies items from all registers in the list onto the stack, in left-to-right order.
+* `clear A` - clears register `A` to 0.
+* `clear [A, X]` - you get the idea. Clears all registers in the list to 0.
+
+
+## Boolean Operators
+
+Boolean piecewise operators `AND` `OR` `XOR` `NOT` are availabe. They also have some *magic* powers, but less so than other features. That is not a typo - it does say *piece*wise, not bitwise. Some data types are treated bitwise, some are treated more like pieces or fragments.
+
+Pure logic operators are absent simply because pure boolean values don't exist, and their useage for control flow is already covered by other features (cond. jumps, program counter). Besides, piecewise logic can function equivalently in many use cases.
+
+The exact behavior of the piecewise ops depend on the types of its operand(s), left and right operands *usually* have to be of the same type. `NOT` obviously only takes a single operand.
+
+Here are some examples of what piecewise ops does to different data types, when operand types are symmetrical:
+* Numbers   - your regular bitwise operations. **Floats are truncated first**.
+* Strings   - performs some pretty unique operations, see [String Magic](#string-magic).
+* Images    - bitwise op on pixel values across images. Effectively, masking, screening, diffing, inverting
+* Audio     - incompatible
+* Files     - incompatible
+* Addresses - treated as integers
+
+
 ## Control Flow
 
 Sokolang only really implements one feature for control flow, and that is labels, as well as obviously ways to jump to labels conditionally (or unconditionally).
@@ -97,3 +134,12 @@ There are several conditional jumps:
 * `JLZ` Jump if Less than Zero. Jumps to the label if the top of the stack is less than 0.
 
 As far as jumps are concerned, ANY non-numerical value on the stack is treated as "not 0".
+
+
+## NaN: Not a Number
+
+NaN represents the void screaming back at you. Well, okay, it's the result of an undefined operation, like dividing by zero. The reason it's dangerous is because it is infectious - any operation that encounters **NaN** as an operand, will immediately return **NaN**. This makes sense, because trying to perform any sort of arithmetic or logic when one of the operands is literally the representation of an intangible void, can never compute something useful, and will thus itself always return **NaN**.
+
+What this all really means is that once NaN appears in some part of your program, unless you are extremely careful, it will spread like a disease until everything you touch becomes **NaN**.
+
+As you can tell, computer science is essentially existential horror.
