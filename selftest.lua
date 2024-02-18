@@ -12,7 +12,9 @@ local ResultType = {
 local test_path = "tests/"
 local test_files = {
     "basic_add",
-    "basic_sub"
+    "basic_sub",
+    "basic_mul",
+    "basic_div",
 }
 
 
