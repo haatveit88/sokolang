@@ -10,25 +10,25 @@ local function interpret(tokens)
     end
 
     for _, token in ipairs(tokens) do
-        if token.Type == TokenType.NUMBER then
-            push(token.Value)
+        if token.type == TokenType.NUMBER then
+            push(token.value)
 
-        elseif token.Type == TokenType.OPERATOR then
+        elseif token.type == TokenType.OPERATOR then
             if #stack < 2 then
-                error("Insufficient values in the stack for operation at index " .. token.Index)
+                error("Insufficient values in the stack for operation at index " .. token.index)
             end
 
             local b = table.remove(stack)
             local a = table.remove(stack)
             local result
 
-            if token.Value == "+" then
+            if token.value == "+" then
                 result = a + b
-            elseif token.Value == "-" then
+            elseif token.value == "-" then
                 result = a - b
-            elseif token.Value == "*" then
+            elseif token.value == "*" then
                 result = a * b
-            elseif token.Value == "/" then
+            elseif token.value == "/" then
                 if b == 0 then
                     result = "NAN"
                 else
@@ -37,10 +37,10 @@ local function interpret(tokens)
             end
 
             push(result)
-        elseif token.Type == TokenType.KEYWORD and token.Value == "push" then
+        elseif token.type == TokenType.KEYWORD and token.value == "push" then
             -- This simplification assumes handling of 'push' is direct; adjustments needed for actual sequence handling
         else
-            error("Unknown or unsupported token at index " .. token.Index)
+            error("Unknown or unsupported token at index " .. token.index)
         end
     end
 

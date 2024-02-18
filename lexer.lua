@@ -3,28 +3,40 @@ require("token_types")
 
 local function lex(code)
     local tokens = {}
-    local tokenIndex = 1
+    local index = 1
     code = code .. " "  -- Adding a trailing space to capture the last token in the loop
 
     for i = 1, #code do
-        if code:sub(i, i):match("%s") then
-            if i > tokenIndex then
-                local tokenStr = code:sub(tokenIndex, i - 1)
-                local tokenType = TokenType.UNKNOWN
-                local tokenValue = tokenStr
+        local fragment = code:sub(i, i):match("%s")
 
-                if tonumber(tokenStr) then
-                    tokenType = TokenType.NUMBER
-                    tokenValue = tonumber(tokenStr)
-                elseif tokenStr:match("[%+%-%*/]") then
-                    tokenType = TokenType.OPERATOR
-                elseif tokenStr == "push" then
-                    tokenType = TokenType.KEYWORD
+        if fragment then
+            if i > index then
+                local lexeme = string.lower(code:sub(index, i - 1))
+
+                local type
+                local value
+
+                if tonumber(lexeme) then
+                    type = TokenType.NUMBER
+                    value = tonumber(lexeme)
+                elseif lexeme:match("[%+%-%*/]") then
+                    type = TokenType.OPERATOR
+                    value = lexeme
+                elseif lexeme == "push" then
+                    type = TokenType.KEYWORD
+                    value = "push"
+                else
+                    type = TokenType.UNKNOWN
+                    value = nil
                 end
 
-                table.insert(tokens, {Type = tokenType, Value = tokenValue, Index = tokenIndex})
+                if type ~= TokenType.UNKNOWN and value == nil then
+                    error(string.format("Line [%i]: typed token created without a value: '%s'  (Source: %s)", index, type, fragment))
+                end
+
+                table.insert(tokens, {type = type, value = value, index = index})
             end
-            tokenIndex = i + 1
+            index = i + 1
         end
     end
 
