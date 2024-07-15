@@ -122,8 +122,9 @@ Manipulation:
 * `drop`   drops (discards) the top item
 * `swap`   swaps places of the top two items
 * `pick`   pops a number *n* off the stack, and then copies the *n*th item on the stack to the top.
-* `rotate` rotates the top 3 items on the stack. #1 becomes #3, #2 becomes #1, and #3 becomes #2. `3 2 1` -> `1 3 2`
+* `rotate` rotates the top 3 items on the stack, by moving the top element to the bottom, so the top-of-stack item becomes #3. `3 2 1` -> `1 3 2`
 * `dup`    duplicates the top item
+* `!`      repeat the last instruction that wasn't also a `!`. This means these can be chained (e.g. `+ !!!` will repeat the `+` command 3 times). For large number of repetitions, better use a loop.
 
 Inspection:
 * `.` prints the current top item without popping it
