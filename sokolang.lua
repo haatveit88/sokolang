@@ -2,7 +2,39 @@
 local lexer = require("lexer")
 local printf = require("utils/printf")
 
+local function preprocess(tokens)
+    local expanded_tokens = {}
+    local index = 1
+
+    while index <= #tokens do
+        local token = tokens[index]
+
+        if token.type == TokenType.REPEAT and token.value == "!" then
+            -- handle REPEATs, replace with previous non-repeat instruction
+            local repetitions = 1
+            while index + repetitions <= #tokens and tokens[index + repetitions].type == TokenType.REPEAT do
+                repetitions = repetitions + 1
+            end
+
+            local previous = expanded_tokens[#expanded_tokens]
+            for i = 1, repetitions do
+                table.insert(expanded_tokens, previous)
+            end
+
+            index = index + repetitions
+        else
+            -- pass token through unchanged
+            table.insert(expanded_tokens, token)
+            index = index + 1
+        end
+    end
+
+    return expanded_tokens
+end
+
+
 local function interpret(tokens)
+    tokens = preprocess(tokens)
     local stack = {}
     local printouts = {}
 
@@ -40,7 +72,7 @@ local function interpret(tokens)
         return stack[index or size()]
     end
 
-    for _, token in ipairs(tokens) do
+    for index, token in ipairs(tokens) do
         if token.type == TokenType.NUMBER then
             push(token.value)
         elseif token.type == TokenType.OPERATOR then
@@ -67,13 +99,13 @@ local function interpret(tokens)
                 else
                     result = a / b
                 end
-            elseif token.value == "." then
-                log(peek())
             end
 
             if result then
                 push(result)
             end
+        elseif token.type == TokenType.PRINT and token.value == "." then
+            log(peek())
         elseif token.type == TokenType.KEYWORD and token.value == "push" then
             -- This simplification assumes handling of 'push' is direct; adjustments needed for actual sequence handling
         elseif token.type == TokenType.KEYWORD and token.value == "dup" then
@@ -101,17 +133,33 @@ local function interpret(tokens)
             end
         elseif token.type == TokenType.KEYWORD and token.value == "peek" then
             local n = pop()
-            log(peek())
+            log(peek(n))
         else
-            error("Unknown or unsupported token at index " .. token.index)
+            local remaining_tokens = ""
+            local pointer
+            for i = index, #tokens do
+                pointer = i == index and " <<< that's this one" or ""
+                remaining_tokens = remaining_tokens ..
+                string.format("\n%i:{%s, %s}%s", i, tokens[i].type, tokens[i].value, pointer)
+            end
+            local err = string.format("\nUnknown or unsupported token at source index %i\n%s\n", index, remaining_tokens)
+            error(err)
         end
     end
 
     return stack, printouts
 end
 
-local function run(code)
-    return interpret(lexer.lex(code))
+local function run(code, dump)
+    local tokens = lexer.lex(code)
+
+    if dump then
+        for k, v in ipairs(tokens) do
+            print(string.format("%i:{%s, %s}", k, v.type, v.value))
+        end
+    end
+
+    return interpret(tokens)
 end
 
 

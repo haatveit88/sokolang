@@ -1,66 +1,103 @@
 -- Sokolang lexer
 require("token_types")
 
-local function lex(code)
-    local tokens = {}
-    local index = 1
-    local len = #code
-    code = code .. " "  -- Adding a trailing space to capture the last token in the loop
+local keywords = {
+    ["push"] = TokenType.KEYWORD,
+    ["dup"] = TokenType.KEYWORD,
+    ["swap"] = TokenType.KEYWORD,
+    ["clear"] = TokenType.KEYWORD,
+    ["drop"] = TokenType.KEYWORD,
+    ["rotate"] = TokenType.KEYWORD,
+    ["peek"] = TokenType.KEYWORD,
+}
 
-    for i = 1, #code do
-        local fragment = code:sub(i, i):match("%s")
+local delimiters = "[%s%+%*/%.!,]"
 
-        if fragment then
-            if i > index then
-                local lexeme = string.lower(code:sub(index, i - 1))
+local tokens = {}
+local index = 1
 
-                local type
-                local value
+local function eat()
+    index = index + 1
+end
 
-                if tonumber(lexeme) then
-                    type = TokenType.NUMBER
-                    value = tonumber(lexeme)
-                elseif lexeme:match("[%+%-%*/%.]") then
-                    type = TokenType.OPERATOR
-                    value = lexeme
-                elseif lexeme == "push" then
-                    type = TokenType.KEYWORD
-                    value = "push"
-                elseif lexeme == "dup" then
-                    type = TokenType.KEYWORD
-                    value = "dup"
-                elseif lexeme == "swap" then
-                    type = TokenType.KEYWORD
-                    value = "swap"
-                elseif lexeme == "clear" then
-                    type = TokenType.KEYWORD
-                    value = "clear"
-                elseif lexeme == "drop" then
-                    type = TokenType.KEYWORD
-                    value = "drop"
-                elseif lexeme == "rotate" then
-                    type = TokenType.KEYWORD
-                    value = "rotate"
-                elseif lexeme == "peek" then
-                    type = TokenType.KEYWORD
-                    value = "peek"
-                else
-                    type = TokenType.UNKNOWN
-                    value = nil
-                end
+local function add_token(type, value)
+    table.insert(tokens, { type = type, value = value, index = index })
+end
 
-                if type ~= TokenType.UNKNOWN and value == nil then
-                    error(string.format("Line [%i]: typed token created without a value: '%s'  (Source: %s)", index, type, fragment))
-                end
+local function lex(input)
+    while index <= #input do
+        local char = input:sub(index, index)
 
-                table.insert(tokens, {type = type, value = value, index = index})
+        if char:match("%s") then
+            -- Any extra whitespace handling goes here
+            eat()
+        elseif char:match("[%+%*/]") then
+            -- Handle operators
+            add_token(TokenType.OPERATOR, char)
+            eat()
+        elseif char == "." then
+            add_token(TokenType.PRINT, char)
+            eat()
+        elseif char == "," then
+            --TODO: Handle commas inside arrays
+            eat()
+        elseif char == '!' then
+            add_token(TokenType.REPEAT, char)
+            eat()
+        elseif char:match("%d") or (char == '-' and index < #input and input:sub(index + 1, index + 1):match("%d")) then
+            -- Handle numbers, including negative ones
+            local num = char
+            eat()
+
+            while index <= #input and input:sub(index, index):match("%d") do
+                num = num .. input:sub(index, index)
+                eat()
             end
-            index = i + 1
+
+            add_token(TokenType.NUMBER, tonumber(num))
+        else
+            -- Check for keywords and unknown tokens
+            local start_index = index
+
+            -- Iterate forward until a delimiter (whitespace, operator, etc.) is found
+            while index <= #input and not input:sub(index, index):match(delimiters) do
+                eat()
+            end
+
+            -- Extract the potential keyword or unknown token
+            local lexeme = input:sub(start_index, index - 1)
+
+            -- Check if the lexeme is a keyword
+            for keyword in pairs(keywords) do
+                if lexeme:sub(1, #keyword) == keyword then
+                    add_token(keywords[keyword], keyword)
+                    if #lexeme > #keyword then
+                        -- Handle the rest of the lexeme if it's followed by a number
+                        local remainder = lexeme:sub(#keyword + 1)
+                        if remainder:match("^%-?%d+$") then
+                            add_token(TokenType.NUMBER, tonumber(remainder))
+                        else
+                            -- If it's not a number, consider it unknown
+                            for i = 1, #remainder do
+                                add_token(TokenType.UNKNOWN, remainder:sub(i, i))
+                            end
+                        end
+                    end
+                    lexeme = nil
+                    break
+                end
+            end
+
+            -- If the lexeme was not a keyword, handle it as unknown
+            if lexeme then
+                for i = 1, #lexeme do
+                    add_token(TokenType.UNKNOWN, lexeme:sub(i, i))
+                end
+            end
         end
     end
 
     return tokens
 end
 
-
-return {lex = lex}
+return { lex = lex }
