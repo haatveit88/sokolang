@@ -24,9 +24,8 @@ The stack upon which Sokolang operates, is *magical* in the sense that it can ho
 
 Here is a list of types the stack can hold, which also conveniently doubles as a list of all the types recognized by the language in general:
 
-* **Numbers**: Floats and ints can intermingle in most contexts, but for some operations floats are truncated.
+* **Numbers**: Ints only
     * `push 5`
-    * `push 3.14`
 * **Strings**: String literals. They must be quoted by double quotes. Single characters are also strings.
     * `push "hello world"`
     * `push "a"`
@@ -43,9 +42,19 @@ Here is a list of types the stack can hold, which also conveniently doubles as a
 * **NaN**: Not a Number. This one means something has gone terribly wrong. See [NaN: Not a Number](#nan-not-a-number).
 
 
+## Arithmetic Operators
+
+Sokolang supports the basic arithmetic operators:
+
+* `+` addition
+* `-` subtraction
+* `*` multiplication
+* `/` integer division. The remainder is discarded
+
+
 ## Magic Operators
 
-To complement the [Magic Stack](#magic-stack), there are Magic Operators. Really they are just arithmetic operators, but they apply to most datatypes in ways that may be unexpected to programmers, but perhaps intuitive to non-programmers.
+To complement the [Magic Stack](#magic-stack), there are Magic Operators. Really they are just the same as the arithmetic operators, but they apply to most datatypes in ways that may be unexpected to programmers, but perhaps intuitive to non-programmers.
 
 For example, adding two images together is completely valid, and produces a new image that is the pixel-wise sum of its operands. The intention is more or less that *if you can imagine this operation doing something useful with these operands, it should do that thing*. Adding a number to an image? Fine, your image is now brighter. Add two arrays together? Sure, they will add element-wise (pseudocode): `[1, 2] + [3, 4] = [4, 6]`. Add two strings together? They are concatenated. Subtract a number from a string? That string is now shorter! And so on.
 
@@ -108,9 +117,9 @@ Since arrays can live on the stack, it makes sense that operators can manipulate
 
 * `sum` - computes the sum of the elements. Like inserting `+` between every element.
 * `prod` - computes the product of the elements. Like inserting `*` between every element.
-* `avg` - computes the arithmetic mean elements. Like summing and dividing by the original length.
+* `avg` - computes the arithmetic mean elements. Like summing and dividing by the original length, truncated.
 * `diff` - computes the cumulative difference among the elements.
-* `concat` - concatenates the elements. Integers and strings used as-is, floats are truncated, records are type-dependent
+* `concat` - concatenates the elements. Integers and strings used as-is, records are type-dependent
 
 
 ## Stack manipulation & inspection
@@ -136,13 +145,13 @@ Inspection:
 
 Sokolang does offer a few general purpose registers, three special purpose registers, and facilities to manipulate them. The general purpose registers are named `A`, `B`, `C`, `X`, `Y`, `Z`. These registers can hold any value that the stack can hold. They retain their value when read. Storing a value does ***NOT*** pop it off of the stack; values are simply copied to the register, and the stack is left as-is.
 
-The special registers are the Program `PP`, Error `ERR`, and I/O `IO` registers. The Program Pointer register automatically tracks the current program line being executed. It can also be written to, effectively moving the program pointer; this allows for some different control flow vs labels. The Error register `ER` contains information about the most recent instruction; `ERR` equals 0 if the last instruction succeeded, any value other than 0 is an error code specific to the type of error that occured. The I/O register sets the target for `read` and `write` instructions, and can hold either hex memory addresses or file names, and will redirect reads/writes accordingly. This is a very powerful feature, allowing the user to shuttle chunks of between the stack, memory, and the file system.
+The special registers are the Program `PP`, Error `ERR`, and I/O `IO` registers. The Program Pointer register automatically tracks the current program line being executed. It can also be written to, effectively moving the program pointer; this allows for some different control flow vs labels. The Error register `ERR` contains information about the most recent instruction; `ERR` equals 0 if the last instruction succeeded, any value other than 0 is an error code specific to the type of error that occured. The I/O register sets the target for `read` and `write` instructions, and can hold either hex memory addresses or file names, and will redirect reads/writes accordingly. This is a very powerful feature, allowing the user to shuttle chunks of data between the stack, memory, and the file system.
 
-* `store A` - clopes the top stack item to register A
+* `store A` - copies the top stack item to register A
 * `store AX` - copies the top stack item to registers `A` and `X` simultaneously. Each available general purpose register can appear once in the list, in any order.
 * `store AIOX` - copies the top stack item to registers `A`, `IO`, and `X`.
 * `load A` - pushes a copy of the value in register `A` onto the stack.
-* `load AX` - pushes copies of the values of all registers in the list onto the stack, in left-to-right order.
+* `load AX` - pushes copies of the values of all registers in the list onto the stack, in left-to-right order (e.g. `A` first, `X` second).
 
 There are shorthands for these operations, as follows:
 
@@ -160,6 +169,9 @@ Some devices and operations return a complex chunk of data, and these are consid
 
 
 ## Read & Write
+
+`write` - pops the top value off the stack, and writes it to its `IO` destination.
+`read`  - reads data from the current `IO` destination, and pushes it into the stack.
 
 Reads and writes can be directed to one of two systems; Memory or File. With respect to reading and writing, these are equivalent, however Memory is addressed via numerical addresses (hex or integer), and is a finite structure; that is, there are only so many memory blocks available to use. Files are less restrictive, and is addressed by file name.
 
@@ -179,7 +191,7 @@ Boolean piecewise operators `AND` `OR` `XOR` `NOT` are availabe (that is not a t
 The exact behavior of the piecewise ops depend on the types of its operand(s), left and right operands *usually* have to be of the same type. `NOT` obviously only takes a single operand. These operations pop items off the stack and push a result back on.
 
 Here are some examples of what piecewise ops does to different data types, when operand types are symmetrical:
-* Numbers   - your regular bitwise operations. **Floats are truncated first**.
+* Numbers   - your regular bitwise operations.
 * Strings   - performs some pretty unique piece-wise operations, see [String Magic](#string-magic).
 * Images    - bitwise op on pixel values across images. Basically; masking, blending, diffing, inverting.
 * Records   - incompatible?
